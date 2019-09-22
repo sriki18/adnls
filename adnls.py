@@ -2,6 +2,7 @@ import autograd.numpy as np
 from autograd import elementwise_grad as egrad
 from autograd import jacobian
 from typing import Callable
+from scipy.stats import t
 
 
 class fit:
@@ -185,6 +186,37 @@ class fit:
         vcov = self.get_vcov(x=self._bestfit_pars)
         sd_bf = np.sqrt(np.diag(vcov))
         return sd_bf
+
+    def summary(self):
+        """Summary of best-fit.
+        """
+        m = self._m
+        n = len(self._bestfit_pars)
+        estimates = self._bestfit_pars
+        std_err = self.get_sd_bf()
+        t_value = estimates / std_err
+        pvalues = 2 * (1 - t.cdf(t_value, m - n))
+        width = 9
+        print(
+            "{0:{width}} {1:{width}} {2:{width}} {3:{width}} {4:{width}}".format(
+                "Parameter", "Estimate", "Std. Err.", "t value", "Pr(>|t|)", width=width, align="<"
+            )
+        )
+        for ind in range(len(estimates)):
+            pformat = "{4:<{width}.4f}"
+            if pvalues[ind] < 1e-4:
+                pformat = "{4:<{width}.4e}"
+            opstr = "{0:{width}} {1:<{width}.3f} {2:<{width}.3f} {3:<{width}.3f} " + pformat
+            print(
+                opstr.format(
+                    "x" + str(ind),
+                    estimates[ind],
+                    std_err[ind],
+                    t_value[ind],
+                    pvalues[ind],
+                    width=width,
+                )
+            )
 
 
 def sse(res_func: Callable, par_list: np.ndarray, extra_pars: dict) -> float:
