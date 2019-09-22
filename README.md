@@ -3,7 +3,7 @@ Using automatic differentiation as implemented in the `autograd` package for ana
 
 ## Quick start/Example
 
-Example taken from [Niclas Börlin's lecture slides](https://www8.cs.umu.se/kurser/5DA001/HT07/lectures/lsq-handouts.pdf), which also has a clear explanation of the concepts involved. First the model and residual function are defined.
+Example taken from [Niclas Börlin's lecture slides](https://www8.cs.umu.se/kurser/5DA001/HT07/lectures/lsq-handouts.pdf), which also has a clear explanation of the concepts involved. Download `adnls.py` from this repo into your working directory. Then the model and residual function are defined.
 
 ```python
 from adnls import fit
