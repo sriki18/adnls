@@ -83,7 +83,67 @@ Install the `autograd` package with `pip install autograd`. See [here](https://g
 ## Caveats
 1. Model must use `autograd.numpy` and `autograd.scipy` where applicable. 
 2. Only the subset of `numpy` and `scipy` implemented by the `autograd` package will work. See [here](https://github.com/HIPS/autograd/blob/master/docs/tutorial.md#supported-and-unsupported-parts-of-numpyscipy) for list of things that will work.
+3. Differential equation models don't appear to work at the moment. For example, consider the differential equation variant of the model above:
+   ```python
+   from adnls import fit
+   import autograd.numpy as np
+   from autograd.scipy.integrate import odeint
+   # from scipy.integrate import odeint
+
+
+   def derivative(y, t, p):
+       dy = p[0] * p[1] * np.exp(p[1] * t)
+       return dy
+
+
+   def model(t, p):
+       y0 = np.array([0])
+       sol = odeint(derivative, y0, t, args=(p,))
+       print(sol)
+       return sol[1:, 0] + p[0]
+
+
+   def res(p, extra_pars):
+       return model(extra_pars["t"], p) - extra_pars["data"]
+       # [ 0.10523129 -0.12654102  0.02710805]
+
+
+   if __name__ == "__main__":
+       extra_pars = {}
+       extra_pars["t"] = np.array([0, 1, 2, 4])
+       extra_pars["data"] = np.array([3, 4, 6])
+       x_best = np.array((2.4893671, 0.2210597), dtype=np.float64)
+       print(res(x_best, extra_pars))
+       this_fit = fit(
+           res_func=res,
+           bestfit_pars=x_best,
+           extra_pars=extra_pars,
+       )
+       print("Jacobian")
+       print(this_fit.get_J(x_best))
+   ```
+    This fails with     
+   ```
+    ...
+     File "C:\Users\username\Documents\projects\adnls\adnls.py", line 109, in <lambda>
+       J = jacobian(lambda pars: self._res_func(pars, self._extra_pars))(x)
+     File "diffeq.py", line 21, in res
+       return model(extra_pars["t"], p) - extra_pars["data"]
+     File "diffeq.py", line 15, in model
+       sol = odeint(derivative, y0, t, args=(p,))
+     File "C:\Users\username\Miniconda3\envs\ad\lib\site-packages\autograd\tracer.py", line 48, in f_wrapped
+       return f_raw(*args, **kwargs)
+     File "C:\Users\username\Miniconda3\envs\ad\lib\site-packages\scipy\integrate\odepack.py", line 244, in odeint
+       int(bool(tfirst)))
+   ValueError: setting an array element with a sequence.
+    ```
+
+    The model itself is fine, though. This can be verified by uncommeting `# from scipy.integrate import odeint` and commenting out `from autograd.scipy.integrate import odeint`. Not sure if it's a bug in my implementation.
+
+### Work-around
+If you must use a differential equation model, considering using the up-to-date [JAX library](https://github.com/google/jax). Presently there is an experimental ODE solver in JAX at https://github.com/google/jax/blob/master/jax/experimental/ode.py .
+- But this only works on Linux/macOS. See [here](https://github.com/google/jax/issues/438) for discussion on porting JAX for Windows - apparently this can be done with Windows Subsystem for Linux (WSL). (The challenge was getting `jaxlib` to compile on Windows)
+
 
 # To do
-1. Investigate differential equation models.
-2. Add a summary like the `nls` function in R, with significance of parameters reported.
+1. Try out WSL for differential equation models.
