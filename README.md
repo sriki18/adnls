@@ -70,6 +70,51 @@ Sd of best-fit paramters
 [0.142467   0.01750314]
 ```
 
+## Background
+
+We are interested finding the standard deviation (sd) of the best-fit parameters (or the standard errors of the best-fit parameters) and conducting significance tests on each parameter. The sd of the best fit parameters are given by the diagonal elements of the covariance matrix $\Sigma$. $\Sigma$ for non-linear regression is given by:
+
+$$
+\Sigma = \sigma^2 (H^{-1})
+$$
+
+where $\sigma$ is the standard deviation of the residuals and $H$ is the Hessian of the objective function (such as least squares or weighted least squares). 
+
+### Finding standard deviation of the residuals, $\sigma$
+
+If you don't know $\sigma$ from previous experiments, then you can estimate it as $\hat{\sigma}$ and use that estimated value to get $\Sigma = \hat{\sigma}^2 (H^{-1})$. It can be estimated with:
+
+$$
+\hat{\sigma} = \sqrt{\frac{f(x_{best})}{m-n}}
+$$
+
+where $f(x_{best})$ is the best likelihood found by maximum-likelihood (aka best fit objective function). This can be something like the sum of squared residuals (SSE). $m$ is the number of parameters in your model. $n$ is the number of data points used to fit your model.
+
+### Finding the Hessian of the objective function, $H$
+
+The Hessian is the same as the Jacobian of the gradient. I use the `autograd.elementwise_grad` and `autograd.jacobian` to compute $H$. See the snippet below:
+
+```python
+from autograd import elementwise_grad as egrad
+from autograd import jacobian
+import autograd.numpy as np
+
+
+def func(x):
+    return np.sin(x[0]) * np.sin(x[1])
+
+
+x_value = np.array([0.0, 0.0])  # has to be float, not int
+H_f = jacobian(egrad(func))  # returns a function
+print(H_f(x_value))
+```
+
+Together with $\sigma$ (or $\hat{\sigma}$), we can estimate $\Sigma$. From there, the standard errors of the paramters are just the diagonal elements of $\Sigma$.
+
+### $t$ value and testing for significance
+
+The $t$ statistic for the $i^th$ is estimated as $x_{best,i}$ / $i^th$ element of diag($\Sigma$). This should be $t$ distributed with degrees of freedom = $m-n$.
+
 ## Features
 1. Compute Jacobian of the residuals with respect to fitted parameters using automatic differentiation.
 2. Compute Hessian of the objective function with respect to fitted parameters using automatic differentiation.
@@ -147,3 +192,4 @@ If you must use a differential equation model, considering using the up-to-date 
 
 # To do
 1. Try out WSL for differential equation models.
+2. Add reference for background.
